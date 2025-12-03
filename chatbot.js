@@ -120,12 +120,8 @@ client.on('message', async (msg) => {
     const from = msg.from;
     const body = (msg.body || '').trim();
 
-    // 🛑 Bloqueia grupos e mensagens inválidas
+    // 🛑 Bloqueia apenas grupos
     if (!from || from.endsWith('@g.us')) return;
-
-    // 🛑 Bloqueia contatos salvos (apenas números não salvos)
-    const contact = await msg.getContact();
-    if (contact.isMyContact) return;
 
     let state = userStages[from] || null;
     const now = Date.now();
