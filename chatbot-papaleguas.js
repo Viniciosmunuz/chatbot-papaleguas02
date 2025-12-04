@@ -85,7 +85,7 @@ const RESPONSES = {
     
     AGUARDANDO_PAGAMENTO: '*Como você prefere pagar?*\n\n1️⃣ Pix\n2️⃣ Dinheiro\n3️⃣ Cartão na entrega',
     
-    PEDIDO_TUDO_JUNTO: 'Envie seu pedido! 📝\n\nUm atendente entrará em contato para confirmar os detalhes, o valor total e o tempo de entrega.\n\nObrigado por escolher o Restaurante PAPALEGUAS! 🍽️',
+    PEDIDO_TUDO_JUNTO: 'Qual é o seu *Nome Completo*?',
     
     PEDIDO_CONFIRMACAO: (nome, pedido, endereco) => 
         `✅ *RESUMO DO PEDIDO*\n\n👤 Nome: ${nome}\n🍽️ Pedido: ${pedido}\n📍 Endereço: ${endereco}\n💰 Taxa: R$ 3,00\n\nTudo certo? Digite *SIM* ou *NÃO*`,
@@ -181,23 +181,51 @@ client.on('message', async (msg) => {
     // ═══════════════════════════════════════════════════════════════════
     // 🛍️ FLUXO DE PEDIDO
     // ═══════════════════════════════════════════════════════════════════
-      // Estado AGUARDANDO_NOME removido: pedido é livre
 
+    // PASSO 1: PEDIR NOME
     if (state === 'AGUARDANDO_DADOS_COMPLETOS') {
-      // Aceitar mensagem em qualquer formato - sem validação obrigatória
-      const pedido = body.trim();
-      const numeroCliente = from.replace('@c.us', '');
+      userData[from].nome = body.trim();
+      await client.sendMessage(from, RESPONSES.AGUARDANDO_PEDIDO(userData[from].nome));
+      userStages[from] = 'AGUARDANDO_PEDIDO_DESCRICAO';
+      return;
+    }
 
-      // Enviar diretamente ao dono com os dados recebidos
-      const ownerMessage = `🚨 *NOVO PEDIDO* 🚨\n📱 Cliente: https://wa.me/${numeroCliente}\n📝 Pedido:\n${pedido}`;
+    // PASSO 2: PEDIR O PEDIDO
+    if (state === 'AGUARDANDO_PEDIDO_DESCRICAO') {
+      userData[from].pedido = body.trim();
+      await client.sendMessage(from, RESPONSES.AGUARDANDO_ENDERECO);
+      userStages[from] = 'AGUARDANDO_ENDERECO_DESCRICAO';
+      return;
+    }
+
+    // PASSO 3: PEDIR ENDEREÇO
+    if (state === 'AGUARDANDO_ENDERECO_DESCRICAO') {
+      userData[from].endereco = body.trim();
+      await client.sendMessage(from, RESPONSES.AGUARDANDO_PAGAMENTO);
+      userStages[from] = 'AGUARDANDO_PAGAMENTO_DESCRICAO';
+      return;
+    }
+
+    // PASSO 4: PEDIR FORMA DE PAGAMENTO
+    if (state === 'AGUARDANDO_PAGAMENTO_DESCRICAO') {
+      userData[from].pagamento = body.trim();
+      
+      // Enviar ao dono
+      const numeroCliente = from.replace('@c.us', '');
+      const nome = userData[from].nome;
+      const pedido = userData[from].pedido;
+      const endereco = userData[from].endereco;
+      const pagamento = userData[from].pagamento;
+
+      const ownerMessage = RESPONSES.PEDIDO_AVISO_DONO(nome, numeroCliente, pedido, endereco);
       await client.sendMessage(ownerNumber, ownerMessage);
 
-      // Confirmar ao cliente que o pedido foi enviado - mensagem de pedido em processo
+      // Confirmar ao cliente
       await client.sendMessage(from, RESPONSES.PEDIDO_EM_PROCESSO);
-
-      // Finalizar estado
+      
       userStages[from] = 'PEDIDO_CONFIRMADO';
       return;
+    }
     }
 
     if (state === 'PEDIDO_AGUARDANDO_CONFIRMACAO') {
