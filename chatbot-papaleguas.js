@@ -144,7 +144,7 @@ client.on('message', async (msg) => {
 
     // Volta ao menu a partir de SUPORTE
     if (state === 'SUPORTE' && isInitialTrigger(body)) {
-        await client.sendMessage(from,qro q nao seja  RESPONSES.BOAS_VINDAS);
+        await client.sendMessage(from, RESPONSES.BOAS_VINDAS);
         userStages[from] = 'MENU_PRINCIPAL';
         return;
     }
